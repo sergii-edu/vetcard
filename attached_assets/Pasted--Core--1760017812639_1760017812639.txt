@@ -1,0 +1,110 @@
+Модуль	Епік / Велика задача	Конкретні завдання
+Базова інфраструктура (Core)	Автентифікація користувача	"1. Створити UI екранів реєстрації та входу. 
+2. Розробити API для реєстрації/логіну (endpoints). 
+3. Реалізувати логіку роботи з сесіями/токенами."
+	Управління профілем тварини	"1. Створити UI екрану створення/редагування профілю. 
+2. Розробити API для CRUD-операцій (створити, прочитати, оновити, видалити) з профілем. 
+3. Спроектувати модель даних тварини в базі даних."
+Робота з даними (Data Management)	Ручне введення метрик	"1. Створити UI форми для ручного введення ваги. 
+2. Створити UI форми для ручного введення результатів аналізу крові. 
+3. Розробити API для збереження медичних показників в історію. 
+4. Спроектувати модель даних для показників (назва, значення, одиниці, дата)."
+	"Розумне сканування" (OCR)	"1. Створити UI для завантаження файлу (фото/PDF). 
+2. Інтегрувати проєкт з хмарним OCR-сервісом (напр., Google Vision AI). 
+3. Розробити парсер, що витягує з тексту: назву показника, значення та референтний діапазон (норму). 
+4. Створити UI екрану для перевірки та редагування розпізнаних даних. 
+5. Реалізувати логіку збереження перевірених даних в базу."
+Візуалізація та Аналітика (Dashboard & Alerts)	Дашборд здоров'я	"1. Розробити API для отримання історичних даних по кожному показнику (для графіків). 
+2. Створити UI екрану дашборду. 
+3. Інтегрувати бібліотеку для побудови графіків. 
+4. Реалізувати побудову графіків динаміки показників (напр., зміна ваги за часом)."
+	Система сповіщень (Алертів)	"1. Розробити логіку, що перевіряє, чи входить показник у свій референтний діапазон. 
+2. Реалізувати візуальне відображення алерту на дашборді (напр., червоний індикатор, виділення кольором). 
+3. (Опційно/Бонус) Створити окремий екран-список з історією всіх зафіксованих алертів."
+Модель даних (Data Model)	Розробити модель даних сервісу	"---Animal:
+id: UUID
+name: string
+species: enum [Dog, Cat, Bird, Reptile, Rodent, Horse, Other]
+breed: string
+sex: enum [Male, Female, Unknown]
+date_of_birth: date
+microchip_id: string | null
+passport_number: string | null
+color: string
+weight_kg: float | null
+owner_id: UUID (FK -> Owner)
+clinic_id: UUID (FK -> Clinic)
+created_at: datetime
+updated_at: datetime
+---Owner:
+id: UUID
+first_name: string
+last_name: string
+email: string
+phone: string
+country: string (ISO 3166-1 alpha-2)
+address_line1: string
+address_line2: string | null
+city: string
+postal_code: string
+preferred_language: string (ISO 639-1)
+created_at: datetime
+updated_at: datetime
+---VeterinaryRecord:
+id: UUID
+animal_id: UUID (FK -> Animal)
+vet_id: UUID (FK -> Vet)
+clinic_id: UUID (FK -> Clinic)
+visit_date: date
+type: enum [Consultation, Vaccination, Surgery, Checkup, Emergency, LabTest, Other]
+diagnosis: string | null
+symptoms: string | null
+treatment: string | null
+notes: string | null
+attachments: [UUID] (FK -> File)
+created_at: datetime
+updated_at: datetime
+---Vet:
+id: UUID
+first_name: string
+last_name: string
+license_number: string
+specialization: string | null
+email: string
+phone: string | null
+country: string (ISO 3166-1 alpha-2)
+clinic_id: UUID (FK -> Clinic)
+created_at: datetime
+updated_at: datetime
+---Clinic:
+id: UUID
+name: string
+country: string (ISO 3166-1 alpha-2)
+address_line1: string
+address_line2: string | null
+city: string
+postal_code: string
+phone: string | null
+email: string | null
+website: string | null
+timezone: string (IANA)
+created_at: datetime
+updated_at: datetime
+---Vaccination:
+id: UUID
+animal_id: UUID (FK -> Animal)
+vaccine_name: string
+manufacturer: string | null
+batch_number: string | null
+date_administered: date
+next_due_date: date | null
+vet_id: UUID (FK -> Vet)
+clinic_id: UUID (FK -> Clinic)
+notes: string | null
+---File:
+id: UUID
+file_name: string
+file_type: string
+url: string
+uploaded_by: UUID (FK -> Vet | Owner)
+uploaded_at: datetime"
