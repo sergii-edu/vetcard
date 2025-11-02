@@ -1,22 +1,16 @@
 import {
   type Owner,
-  type Vet,
   type Animal,
-  type VeterinaryRecord,
-  type Vaccination,
+  type LabTest,
   type HealthMetric,
-  type Clinic,
+  type ChatMessage,
   type File,
-  type RecordAttachment,
   type InsertOwner,
-  type InsertVet,
   type InsertAnimal,
-  type InsertVeterinaryRecord,
-  type InsertVaccination,
+  type InsertLabTest,
   type InsertHealthMetric,
-  type InsertClinic,
+  type InsertChatMessage,
   type InsertFile,
-  type InsertRecordAttachment,
 } from "@shared/schema";
 import { randomUUID } from "crypto";
 
@@ -28,22 +22,6 @@ export interface IStorage {
   updateOwner(id: string, owner: Partial<InsertOwner>): Promise<Owner | undefined>;
   deleteOwner(id: string): Promise<boolean>;
 
-  // Vet methods
-  getVet(id: string): Promise<Vet | undefined>;
-  getVetByEmail(email: string): Promise<Vet | undefined>;
-  getAllVets(): Promise<Vet[]>;
-  getVetsByClinic(clinicId: string): Promise<Vet[]>;
-  createVet(vet: InsertVet): Promise<Vet>;
-  updateVet(id: string, vet: Partial<InsertVet>): Promise<Vet | undefined>;
-  deleteVet(id: string): Promise<boolean>;
-
-  // Clinic methods
-  getClinic(id: string): Promise<Clinic | undefined>;
-  getAllClinics(): Promise<Clinic[]>;
-  createClinic(clinic: InsertClinic): Promise<Clinic>;
-  updateClinic(id: string, clinic: Partial<InsertClinic>): Promise<Clinic | undefined>;
-  deleteClinic(id: string): Promise<boolean>;
-
   // Animal methods
   getAnimal(id: string): Promise<Animal | undefined>;
   getAnimalsByOwner(ownerId: string): Promise<Animal[]>;
@@ -51,31 +29,26 @@ export interface IStorage {
   updateAnimal(id: string, animal: Partial<InsertAnimal>): Promise<Animal | undefined>;
   deleteAnimal(id: string): Promise<boolean>;
 
-  // Veterinary Record methods
-  getVeterinaryRecord(id: string): Promise<VeterinaryRecord | undefined>;
-  getVeterinaryRecordsByAnimal(animalId: string): Promise<VeterinaryRecord[]>;
-  createVeterinaryRecord(record: InsertVeterinaryRecord): Promise<VeterinaryRecord>;
-  updateVeterinaryRecord(id: string, record: Partial<InsertVeterinaryRecord>): Promise<VeterinaryRecord | undefined>;
-  deleteVeterinaryRecord(id: string): Promise<boolean>;
-
-  // Record Attachment methods
-  addRecordAttachment(attachment: InsertRecordAttachment): Promise<RecordAttachment>;
-  getRecordAttachments(recordId: string): Promise<File[]>;
-  deleteRecordAttachment(id: string): Promise<boolean>;
-
-  // Vaccination methods
-  getVaccination(id: string): Promise<Vaccination | undefined>;
-  getVaccinationsByAnimal(animalId: string): Promise<Vaccination[]>;
-  createVaccination(vaccination: InsertVaccination): Promise<Vaccination>;
-  updateVaccination(id: string, vaccination: Partial<InsertVaccination>): Promise<Vaccination | undefined>;
-  deleteVaccination(id: string): Promise<boolean>;
+  // Lab Test methods
+  getLabTest(id: string): Promise<LabTest | undefined>;
+  getLabTestsByAnimal(animalId: string): Promise<LabTest[]>;
+  createLabTest(labTest: InsertLabTest): Promise<LabTest>;
+  updateLabTest(id: string, labTest: Partial<InsertLabTest>): Promise<LabTest | undefined>;
+  deleteLabTest(id: string): Promise<boolean>;
 
   // Health Metric methods
   getHealthMetric(id: string): Promise<HealthMetric | undefined>;
   getHealthMetricsByAnimal(animalId: string): Promise<HealthMetric[]>;
+  getHealthMetricsByLabTest(labTestId: string): Promise<HealthMetric[]>;
   createHealthMetric(metric: InsertHealthMetric): Promise<HealthMetric>;
   updateHealthMetric(id: string, metric: Partial<InsertHealthMetric>): Promise<HealthMetric | undefined>;
   deleteHealthMetric(id: string): Promise<boolean>;
+
+  // Chat Message methods
+  getChatMessagesByAnimal(animalId: string): Promise<ChatMessage[]>;
+  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  deleteChatMessage(id: string): Promise<boolean>;
+  deleteChatMessagesByAnimal(animalId: string): Promise<boolean>;
 
   // File methods
   createFile(file: InsertFile): Promise<File>;
@@ -85,24 +58,18 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private owners: Map<string, Owner>;
-  private vets: Map<string, Vet>;
-  private clinics: Map<string, Clinic>;
   private animals: Map<string, Animal>;
-  private veterinaryRecords: Map<string, VeterinaryRecord>;
-  private recordAttachments: Map<string, RecordAttachment>;
-  private vaccinations: Map<string, Vaccination>;
+  private labTests: Map<string, LabTest>;
   private healthMetrics: Map<string, HealthMetric>;
+  private chatMessages: Map<string, ChatMessage>;
   private files: Map<string, File>;
 
   constructor() {
     this.owners = new Map();
-    this.vets = new Map();
-    this.clinics = new Map();
     this.animals = new Map();
-    this.veterinaryRecords = new Map();
-    this.recordAttachments = new Map();
-    this.vaccinations = new Map();
+    this.labTests = new Map();
     this.healthMetrics = new Map();
+    this.chatMessages = new Map();
     this.files = new Map();
   }
 
@@ -137,69 +104,8 @@ export class MemStorage implements IStorage {
     return updated;
   }
 
-  async getVet(id: string): Promise<Vet | undefined> {
-    return this.vets.get(id);
-  }
-
-  async getVetByEmail(email: string): Promise<Vet | undefined> {
-    return Array.from(this.vets.values()).find((vet) => vet.email === email);
-  }
-
-  async getAllVets(): Promise<Vet[]> {
-    return Array.from(this.vets.values());
-  }
-
-  async getVetsByClinic(clinicId: string): Promise<Vet[]> {
-    return Array.from(this.vets.values()).filter((vet) => vet.clinicId === clinicId);
-  }
-
-  async createVet(insertVet: InsertVet): Promise<Vet> {
-    const id = randomUUID();
-    const vet: Vet = {
-      ...insertVet,
-      country: insertVet.country ?? "UA",
-      phone: insertVet.phone ?? null,
-      specialization: insertVet.specialization ?? null,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.vets.set(id, vet);
-    return vet;
-  }
-
-  async updateVet(id: string, updates: Partial<InsertVet>): Promise<Vet | undefined> {
-    const vet = this.vets.get(id);
-    if (!vet) return undefined;
-    const updated = { ...vet, ...updates, updatedAt: new Date() };
-    this.vets.set(id, updated);
-    return updated;
-  }
-
-  async getClinic(id: string): Promise<Clinic | undefined> {
-    return this.clinics.get(id);
-  }
-
-  async getAllClinics(): Promise<Clinic[]> {
-    return Array.from(this.clinics.values());
-  }
-
-  async createClinic(insertClinic: InsertClinic): Promise<Clinic> {
-    const id = randomUUID();
-    const clinic: Clinic = {
-      ...insertClinic,
-      country: insertClinic.country ?? "UA",
-      timezone: insertClinic.timezone ?? "Europe/Kiev",
-      phone: insertClinic.phone ?? null,
-      email: insertClinic.email ?? null,
-      website: insertClinic.website ?? null,
-      addressLine2: insertClinic.addressLine2 ?? null,
-      id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-    this.clinics.set(id, clinic);
-    return clinic;
+  async deleteOwner(id: string): Promise<boolean> {
+    return this.owners.delete(id);
   }
 
   async getAnimal(id: string): Promise<Animal | undefined> {
@@ -216,12 +122,13 @@ export class MemStorage implements IStorage {
     const id = randomUUID();
     const animal: Animal = {
       ...insertAnimal,
+      dateOfBirth: insertAnimal.dateOfBirth ?? null,
       microchipId: insertAnimal.microchipId ?? null,
       passportNumber: insertAnimal.passportNumber ?? null,
       color: insertAnimal.color ?? null,
       weightKg: insertAnimal.weightKg ?? null,
       imageUrl: insertAnimal.imageUrl ?? null,
-      clinicId: insertAnimal.clinicId ?? null,
+      vectorStoreId: insertAnimal.vectorStoreId ?? null,
       id,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -242,116 +149,43 @@ export class MemStorage implements IStorage {
     return this.animals.delete(id);
   }
 
-  async deleteOwner(id: string): Promise<boolean> {
-    return this.owners.delete(id);
+  async getLabTest(id: string): Promise<LabTest | undefined> {
+    return this.labTests.get(id);
   }
 
-  async deleteVet(id: string): Promise<boolean> {
-    return this.vets.delete(id);
-  }
-
-  async updateClinic(id: string, updates: Partial<InsertClinic>): Promise<Clinic | undefined> {
-    const clinic = this.clinics.get(id);
-    if (!clinic) return undefined;
-    const updated = { ...clinic, ...updates, updatedAt: new Date() };
-    this.clinics.set(id, updated);
-    return updated;
-  }
-
-  async deleteClinic(id: string): Promise<boolean> {
-    return this.clinics.delete(id);
-  }
-
-  async getVeterinaryRecord(id: string): Promise<VeterinaryRecord | undefined> {
-    return this.veterinaryRecords.get(id);
-  }
-
-  async getVeterinaryRecordsByAnimal(animalId: string): Promise<VeterinaryRecord[]> {
-    return Array.from(this.veterinaryRecords.values()).filter(
-      (record) => record.animalId === animalId
+  async getLabTestsByAnimal(animalId: string): Promise<LabTest[]> {
+    return Array.from(this.labTests.values()).filter(
+      (test) => test.animalId === animalId
     );
   }
 
-  async createVeterinaryRecord(insertRecord: InsertVeterinaryRecord): Promise<VeterinaryRecord> {
+  async createLabTest(insertLabTest: InsertLabTest): Promise<LabTest> {
     const id = randomUUID();
-    const record: VeterinaryRecord = {
-      ...insertRecord,
-      vetId: insertRecord.vetId ?? null,
-      diagnosis: insertRecord.diagnosis ?? null,
-      symptoms: insertRecord.symptoms ?? null,
-      treatment: insertRecord.treatment ?? null,
-      notes: insertRecord.notes ?? null,
-      clinicId: insertRecord.clinicId ?? null,
-      clinicName: insertRecord.clinicName ?? null,
+    const now = new Date();
+    const labTest: LabTest = {
+      ...insertLabTest,
+      clinicName: insertLabTest.clinicName ?? null,
+      testType: insertLabTest.testType ?? null,
+      notes: insertLabTest.notes ?? null,
+      vectorStoreFileId: insertLabTest.vectorStoreFileId ?? null,
       id,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     };
-    this.veterinaryRecords.set(id, record);
-    return record;
+    this.labTests.set(id, labTest);
+    return labTest;
   }
 
-  async updateVeterinaryRecord(id: string, updates: Partial<InsertVeterinaryRecord>): Promise<VeterinaryRecord | undefined> {
-    const record = this.veterinaryRecords.get(id);
-    if (!record) return undefined;
-    const updated = { ...record, ...updates, updatedAt: new Date() };
-    this.veterinaryRecords.set(id, updated);
+  async updateLabTest(id: string, updates: Partial<InsertLabTest>): Promise<LabTest | undefined> {
+    const labTest = this.labTests.get(id);
+    if (!labTest) return undefined;
+    const updated = { ...labTest, ...updates, updatedAt: new Date() };
+    this.labTests.set(id, updated);
     return updated;
   }
 
-  async addRecordAttachment(insertAttachment: InsertRecordAttachment): Promise<RecordAttachment> {
-    const id = randomUUID();
-    const attachment: RecordAttachment = {
-      ...insertAttachment,
-      id,
-      createdAt: new Date(),
-    };
-    this.recordAttachments.set(id, attachment);
-    return attachment;
-  }
-
-  async getRecordAttachments(recordId: string): Promise<File[]> {
-    const attachments = Array.from(this.recordAttachments.values()).filter(
-      (att) => att.recordId === recordId
-    );
-    const fileIds = attachments.map((att) => att.fileId);
-    return Array.from(this.files.values()).filter((file) => fileIds.includes(file.id));
-  }
-
-  async getVaccination(id: string): Promise<Vaccination | undefined> {
-    return this.vaccinations.get(id);
-  }
-
-  async getVaccinationsByAnimal(animalId: string): Promise<Vaccination[]> {
-    return Array.from(this.vaccinations.values()).filter(
-      (vaccination) => vaccination.animalId === animalId
-    );
-  }
-
-  async createVaccination(insertVaccination: InsertVaccination): Promise<Vaccination> {
-    const id = randomUUID();
-    const vaccination: Vaccination = {
-      ...insertVaccination,
-      vetId: insertVaccination.vetId ?? null,
-      manufacturer: insertVaccination.manufacturer ?? null,
-      batchNumber: insertVaccination.batchNumber ?? null,
-      nextDueDate: insertVaccination.nextDueDate ?? null,
-      notes: insertVaccination.notes ?? null,
-      clinicId: insertVaccination.clinicId ?? null,
-      clinicName: insertVaccination.clinicName ?? null,
-      id,
-      createdAt: new Date(),
-    };
-    this.vaccinations.set(id, vaccination);
-    return vaccination;
-  }
-
-  async updateVaccination(id: string, updates: Partial<InsertVaccination>): Promise<Vaccination | undefined> {
-    const vaccination = this.vaccinations.get(id);
-    if (!vaccination) return undefined;
-    const updated = { ...vaccination, ...updates };
-    this.vaccinations.set(id, updated);
-    return updated;
+  async deleteLabTest(id: string): Promise<boolean> {
+    return this.labTests.delete(id);
   }
 
   async getHealthMetric(id: string): Promise<HealthMetric | undefined> {
@@ -364,18 +198,67 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getHealthMetricsByLabTest(labTestId: string): Promise<HealthMetric[]> {
+    return Array.from(this.healthMetrics.values()).filter(
+      (metric) => metric.labTestId === labTestId
+    );
+  }
+
   async createHealthMetric(insertMetric: InsertHealthMetric): Promise<HealthMetric> {
     const id = randomUUID();
     const metric: HealthMetric = {
       ...insertMetric,
+      labTestId: insertMetric.labTestId ?? null,
       notes: insertMetric.notes ?? null,
       referenceMin: insertMetric.referenceMin ?? null,
       referenceMax: insertMetric.referenceMax ?? null,
+      vectorStoreFileId: insertMetric.vectorStoreFileId ?? null,
       id,
       createdAt: new Date(),
     };
     this.healthMetrics.set(id, metric);
     return metric;
+  }
+
+  async updateHealthMetric(id: string, updates: Partial<InsertHealthMetric>): Promise<HealthMetric | undefined> {
+    const metric = this.healthMetrics.get(id);
+    if (!metric) return undefined;
+    const updated = { ...metric, ...updates };
+    this.healthMetrics.set(id, updated);
+    return updated;
+  }
+
+  async deleteHealthMetric(id: string): Promise<boolean> {
+    return this.healthMetrics.delete(id);
+  }
+
+  async getChatMessagesByAnimal(animalId: string): Promise<ChatMessage[]> {
+    return Array.from(this.chatMessages.values())
+      .filter((msg) => msg.animalId === animalId)
+      .sort((a, b) => (a.createdAt?.getTime() || 0) - (b.createdAt?.getTime() || 0));
+  }
+
+  async createChatMessage(insertMessage: InsertChatMessage): Promise<ChatMessage> {
+    const id = randomUUID();
+    const message: ChatMessage = {
+      ...insertMessage,
+      id,
+      createdAt: new Date(),
+    };
+    this.chatMessages.set(id, message);
+    return message;
+  }
+
+  async deleteChatMessage(id: string): Promise<boolean> {
+    return this.chatMessages.delete(id);
+  }
+
+  async deleteChatMessagesByAnimal(animalId: string): Promise<boolean> {
+    const messagesToDelete = Array.from(this.chatMessages.values())
+      .filter((msg) => msg.animalId === animalId);
+    
+    messagesToDelete.forEach((msg) => this.chatMessages.delete(msg.id));
+    return true;
   }
 
   async createFile(insertFile: InsertFile): Promise<File> {
@@ -396,30 +279,147 @@ export class MemStorage implements IStorage {
   async deleteFile(id: string): Promise<boolean> {
     return this.files.delete(id);
   }
+}
 
-  async deleteVeterinaryRecord(id: string): Promise<boolean> {
-    return this.veterinaryRecords.delete(id);
+import { db } from "./db";
+import { eq } from "drizzle-orm";
+import * as schema from "../shared/schema";
+
+class DbStorage implements IStorage {
+  async getOwner(id: string): Promise<Owner | undefined> {
+    const result = await db.select().from(schema.owners).where(eq(schema.owners.id, id)).limit(1);
+    return result[0];
   }
 
-  async deleteRecordAttachment(id: string): Promise<boolean> {
-    return this.recordAttachments.delete(id);
+  async getOwnerByEmail(email: string): Promise<Owner | undefined> {
+    const result = await db.select().from(schema.owners).where(eq(schema.owners.email, email)).limit(1);
+    return result[0];
   }
 
-  async updateHealthMetric(id: string, updates: Partial<InsertHealthMetric>): Promise<HealthMetric | undefined> {
-    const metric = this.healthMetrics.get(id);
-    if (!metric) return undefined;
-    const updated = { ...metric, ...updates };
-    this.healthMetrics.set(id, updated);
-    return updated;
+  async createOwner(insertOwner: InsertOwner): Promise<Owner> {
+    const result = await db.insert(schema.owners).values(insertOwner).returning();
+    return result[0];
+  }
+
+  async updateOwner(id: string, insertOwner: Partial<InsertOwner>): Promise<Owner | undefined> {
+    const result = await db.update(schema.owners).set(insertOwner).where(eq(schema.owners.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteOwner(id: string): Promise<boolean> {
+    const result = await db.delete(schema.owners).where(eq(schema.owners.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getAnimal(id: string): Promise<Animal | undefined> {
+    const result = await db.select().from(schema.animals).where(eq(schema.animals.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getAnimalsByOwner(ownerId: string): Promise<Animal[]> {
+    return await db.select().from(schema.animals).where(eq(schema.animals.ownerId, ownerId));
+  }
+
+  async createAnimal(animal: InsertAnimal): Promise<Animal> {
+    const result = await db.insert(schema.animals).values(animal).returning();
+    return result[0];
+  }
+
+  async updateAnimal(id: string, animal: Partial<InsertAnimal>): Promise<Animal | undefined> {
+    const result = await db.update(schema.animals).set(animal).where(eq(schema.animals.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteAnimal(id: string): Promise<boolean> {
+    const result = await db.delete(schema.animals).where(eq(schema.animals.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getLabTest(id: string): Promise<LabTest | undefined> {
+    const result = await db.select().from(schema.labTests).where(eq(schema.labTests.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getLabTestsByAnimal(animalId: string): Promise<LabTest[]> {
+    return await db.select().from(schema.labTests).where(eq(schema.labTests.animalId, animalId));
+  }
+
+  async createLabTest(labTest: InsertLabTest): Promise<LabTest> {
+    const result = await db.insert(schema.labTests).values(labTest).returning();
+    return result[0];
+  }
+
+  async updateLabTest(id: string, labTest: Partial<InsertLabTest>): Promise<LabTest | undefined> {
+    const result = await db.update(schema.labTests).set(labTest).where(eq(schema.labTests.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteLabTest(id: string): Promise<boolean> {
+    const result = await db.delete(schema.labTests).where(eq(schema.labTests.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async getHealthMetric(id: string): Promise<HealthMetric | undefined> {
+    const result = await db.select().from(schema.healthMetrics).where(eq(schema.healthMetrics.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getHealthMetricsByAnimal(animalId: string): Promise<HealthMetric[]> {
+    return await db.select().from(schema.healthMetrics).where(eq(schema.healthMetrics.animalId, animalId));
+  }
+
+  async getHealthMetricsByLabTest(labTestId: string): Promise<HealthMetric[]> {
+    return await db.select().from(schema.healthMetrics).where(eq(schema.healthMetrics.labTestId, labTestId));
+  }
+
+  async createHealthMetric(metric: InsertHealthMetric): Promise<HealthMetric> {
+    const result = await db.insert(schema.healthMetrics).values(metric).returning();
+    return result[0];
+  }
+
+  async updateHealthMetric(id: string, metric: Partial<InsertHealthMetric>): Promise<HealthMetric | undefined> {
+    const result = await db.update(schema.healthMetrics).set(metric).where(eq(schema.healthMetrics.id, id)).returning();
+    return result[0];
   }
 
   async deleteHealthMetric(id: string): Promise<boolean> {
-    return this.healthMetrics.delete(id);
+    const result = await db.delete(schema.healthMetrics).where(eq(schema.healthMetrics.id, id)).returning();
+    return result.length > 0;
   }
 
-  async deleteVaccination(id: string): Promise<boolean> {
-    return this.vaccinations.delete(id);
+  async getChatMessagesByAnimal(animalId: string): Promise<ChatMessage[]> {
+    return await db.select().from(schema.chatMessages).where(eq(schema.chatMessages.animalId, animalId));
+  }
+
+  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
+    const result = await db.insert(schema.chatMessages).values(message).returning();
+    return result[0];
+  }
+
+  async deleteChatMessage(id: string): Promise<boolean> {
+    const result = await db.delete(schema.chatMessages).where(eq(schema.chatMessages.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async deleteChatMessagesByAnimal(animalId: string): Promise<boolean> {
+    const result = await db.delete(schema.chatMessages).where(eq(schema.chatMessages.animalId, animalId)).returning();
+    return result.length > 0;
+  }
+
+  async createFile(file: InsertFile): Promise<File> {
+    const result = await db.insert(schema.files).values(file).returning();
+    return result[0];
+  }
+
+  async getFile(id: string): Promise<File | undefined> {
+    const result = await db.select().from(schema.files).where(eq(schema.files.id, id)).limit(1);
+    return result[0];
+  }
+
+  async deleteFile(id: string): Promise<boolean> {
+    const result = await db.delete(schema.files).where(eq(schema.files.id, id)).returning();
+    return result.length > 0;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DbStorage();

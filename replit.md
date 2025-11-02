@@ -11,30 +11,107 @@ VetCard is a professional veterinary medical records management system designed 
 - Veterinary professionals accessing and updating medical data
 - Veterinary clinics coordinating patient care
 
-**Current Status (October 10, 2025):**
+**Current Status (November 2, 2025 - OCR Data Model Enhanced):**
 - ✅ Complete backend API with authentication, CRUD operations, and data validation
+- ✅ **Session Authentication:** PostgreSQL-backed session store (connect-pg-simple), secure cookies, production-ready
+- ✅ **PostgreSQL database:** Persistent storage via Neon serverless, data survives server restarts
 - ✅ Frontend connected to backend with working authentication flow
-- ✅ Owner registration, login, and animal management fully functional
+- ✅ Owner registration, login (with redirect to dashboard), and animal management fully functional
 - ✅ **Default admin user:** admin@admin.com / admin (auto-created on server start)
-- ✅ Dashboard displays real-time animal data from backend
-- ✅ VetRecords page: displays records per animal, add record form with optional vet selection and custom clinic names
-- ✅ Vaccinations page: displays vaccinations per animal with status (completed/upcoming/overdue), optional vet selection
+- ✅ Dashboard displays real-time animal data with AI-focused stat cards
 - ✅ PetsList page: displays owner's animals with age calculation, search functionality, clickable cards navigate to detail view
-- ✅ PetDetail page: comprehensive animal profile with avatar, identification, latest weight, stat cards (records/vaccinations/metrics counts), recent activity summaries
+- ✅ PetDetail page: comprehensive animal profile with avatar, identification, latest weight, health metrics display
 - ✅ HealthMetrics page: grouped metrics by name, latest value display, reference range validation with "out of range" badge
-- ✅ All pages tested end-to-end with full CRUD operations
-- ✅ Flexible clinic workflow: veterinarian selection is optional, supports custom clinic names
 - ✅ Security: bcrypt password hashing, Zod validation, React Query caching
-- ✅ OCR Scan page: fully functional OpenAI Vision API (gpt-5) integration for medical document scanning
-  - Owner-only access with redirect for vets
-  - MIME type validation (JPEG, PNG, WebP only - PDF not supported by OpenAI Vision)
-  - Base64 encoding with type preservation
-  - Animal selector with loading states
-  - Editable metrics grid before save
-  - Batch save to health_metrics table
-  - Complete error handling and user feedback
-  - Tested with real veterinary blood test documents (4 metrics extracted successfully)
-- ⏳ Vet-specific dashboard and workflows
+- ✅ **EDIT FUNCTIONALITY (ENHANCED!):**
+  - Lab test editing with Dialog form (testDate, clinicName as Input with datalist autocomplete, testType, notes)
+  - Health metric editing with Dialog form (value, referenceMin, referenceMax, notes)
+  - Automatic vector store synchronization on edits
+  - Two-path logic: lab-linked metrics update entire lab_test, standalone metrics update individually
+  - Added vectorStoreFileId to health_metrics schema for standalone metrics
+  - React Query cache invalidation for instant UI updates
+  - Success/error toast notifications
+  - **NEW:** Lab test detail displays readonly createdAt/updatedAt timestamps
+- ✅ **Grouped Lab Tests Architecture (ENHANCED!):**
+  - `lab_tests` table with audit timestamps (createdAt, updatedAt)
+  - testType as free text field (allows custom test types, not limited to enum)
+  - One lab_test can contain multiple health_metrics linked via `labTestId`
+  - Vector Store: ONE file per lab_test (instead of one per metric) for better AI context
+  - LabTests page: lists all analyses with date, type, clinic, metric count
+  - LabTestDetail page: displays full analysis with createdAt/updatedAt readonly timestamps
+  - Enhanced OCR: automatically creates lab_test + grouped metrics + single vector file
+- ✅ **OCR Scan page: FULLY ENHANCED!**
+  - Owner-only access
+  - **File type support: JPEG, PNG, WebP, PDF** (PDF support added!)
+  - **PDF processing:** Uses pdf-parse to extract text, then GPT-4o Mini for analysis
+  - **Image processing:** Uses OpenAI Vision API with GPT-4o Mini for faster recognition (5-10 seconds)
+  - **Smart data extraction:**
+    - **Automatic translation to Ukrainian** (translates metric names from any language)
+    - Clinic name from document
+    - Test date from document (editable)
+    - Test type as free-form text (no autocomplete - fully flexible)
+    - Metric values (numeric)
+    - Reference ranges parsed into referenceMin/referenceMax (two numeric fields)
+    - Leaves fields empty (null) if not recognized
+  - **Re-scan workflow (НОВИНКА!):**
+    - File stored in memory after upload (base64, name, size, mimeType)
+    - Card shows uploaded filename and size
+    - "Розпізнати знову" button - re-analyzes same file without re-upload
+    - "Завантажити інший документ" button - clears everything for new upload
+    - **User metadata preserved:** Animal, date, clinic, type NOT overwritten on re-scan
+    - **Memory management:** AbortController for cleanup, isMountedRef guards, automatic cleanup on save/unmount
+  - **Manual editing controls:**
+    - "+ Додати показник" button - add new metrics manually
+    - X button on each metric row - remove unwanted metrics
+    - Manual re-scan without re-upload for quick corrections
+  - Step 1: Upload & analyze document → auto-fills detected data (translated to Ukrainian)
+  - Step 2: Review & edit metrics in grid (6-column layout: name, value, unit, min, max)
+  - Step 3: (Optional) Re-scan document for better recognition OR upload different document
+  - Step 4: Add/remove metrics as needed using manual controls
+  - Step 5: Fill/verify test info (animal, date, clinic, type) - auto-filled on first scan only
+  - Step 6: Save → creates lab_test + metrics + vector upload, clears memory
+  - Redirects to /lab-tests list after save
+  - Complete error handling, memory cleanup, and user feedback
+- ✅ **Vector Store Integration (RAG Architecture - ENHANCED):**
+  - VectorStoreService for OpenAI Vector Store API management
+  - Automatic vector store creation for each animal
+  - **New:** Uploads entire lab_test (with all metrics) as single file for better context
+  - Formatted analysis data includes test date, clinic, metrics with reference ranges, summary
+  - Legacy: Individual metric upload still supported for standalone metrics
+- ✅ **AI Chat API (RAG-based):**
+  - ChatService using OpenAI Assistants API with file_search tool
+  - Thread persistence in memory for conversational context
+  - RAG-powered answers based on animal's grouped lab tests and health metrics
+  - Persistent chat history in database with atomic message storage
+  - Rollback logic prevents orphaned messages on errors
+  - Graceful fallback when OpenAI not configured
+  - POST /api/chat/:animalId - send message and get AI response
+  - GET /api/chat/:animalId - retrieve chat history
+  - DELETE /api/chat/:animalId - clear chat history
+- ✅ **AI Chat UI frontend:**
+  - AIChat page with animal selector
+  - Deep-linking support (/ai-chat/:animalId)
+  - Message history display with user/assistant differentiation
+  - Message input with Enter/Shift+Enter handling
+  - Loading states during AI response generation
+  - Auto-scroll to latest messages
+  - Complete data-testid attributes for E2E testing
+- ✅ **Settings page:**
+  - Data management section with warning dialogs
+  - **Clear data for specific animal** (lab_tests, metrics, vector store) - animal stays in system
+  - **Delete animal completely (NEW!)** - removes animal + ALL data (lab tests, metrics, chat, vector store)
+  - **Clear ALL data** - deletes all animals, lab_tests, metrics, vector stores, chat history
+  - Confirmation dialogs with detailed warnings
+  - Complete backend cleanup via:
+    - DELETE /api/animals/:id/data (clear data only)
+    - DELETE /api/animals/:id (delete animal + all data) - **NEW!**
+    - DELETE /api/data/clear-all (nuclear option)
+- ✅ **Navigation:** Sidebar with AI Асистент, Лабораторні аналізи, Налаштування links
+- ✅ Vet-related functionality completely removed:
+  - Deleted tables: vets, clinics, vaccinations, veterinary_records
+  - Removed all vet UI components and pages
+  - Dashboard stat cards updated (no "Вакцинації" or "Візити")
+  - All backend routes and storage methods cleaned up
 
 ## User Preferences
 
@@ -71,10 +148,16 @@ Preferred communication style: Simple, everyday language.
 **API Pattern:** RESTful API with JSON payloads
 
 **Authentication Strategy:**
-- Session-based authentication (connect-pg-simple for session storage)
-- bcrypt for password hashing
-- Dual user types: owners and veterinarians
-- Role-based access control for medical records
+- **Session-based authentication** with PostgreSQL session store (connect-pg-simple)
+  - Automatic session table creation
+  - 30-day session expiry
+  - httpOnly, sameSite: lax cookies
+  - Secure cookies in production (HTTPS)
+  - Trust proxy configuration for production deployments
+  - Required SESSION_SECRET environment variable (fails fast if missing)
+- bcrypt for password hashing (10 rounds)
+- User type: owners only (vet functionality removed)
+- Session persistence across requests with ownership validation
 
 **Server Structure:**
 - `/server/index.ts` - Express app initialization and middleware
@@ -91,6 +174,9 @@ Preferred communication style: Simple, everyday language.
 **ORM:** Drizzle ORM with PostgreSQL dialect
 
 **Database:** PostgreSQL (via Neon serverless)
+  - DbStorage implementation using Drizzle ORM
+  - All data persists across server restarts
+  - Database schema managed via `npm run db:push`
 
 **Schema Design:**
 ```
@@ -127,12 +213,18 @@ clinics (veterinary clinics)
 ### External Dependencies
 
 **OCR Integration:**
-- OpenAI Vision API (gpt-5 model) - requires OPENAI_API_KEY
+- **Image OCR:** OpenAI Vision API (gpt-4o-mini model) - requires OPENAI_API_KEY
+- **PDF OCR:** pdf-parse library for text extraction + GPT-4o Mini for analysis
+- **Performance:** 5-10 seconds per document (previously 50+ seconds with GPT-5)
 - Purpose: Extract medical data from scanned documents and lab reports
-- Supported formats: JPEG, PNG, WebP only (PDF not supported by OpenAI Vision API)
+- **Supported formats:** JPEG, PNG, WebP, PDF (NEW: PDF support added November 2025)
 - Integration point: `/api/ocr/analyze` endpoint
-- Data flow: Image upload (base64) → OpenAI Vision analysis → structured metric extraction → editable UI grid → user verification → batch save to health_metrics
-- 10MB request size limit for large images
+- Data flow: 
+  - **Images:** base64 → OpenAI Vision API → structured JSON
+  - **PDFs:** base64 → pdf-parse text extraction → GPT-4o Mini analysis → structured JSON
+- Editable UI grid → user verification → batch save to health_metrics
+- 10MB request size limit for large files
+- Model choice: GPT-4o Mini optimized for speed while maintaining accuracy for medical document recognition
 
 **UI Component Libraries:**
 - Radix UI primitives (@radix-ui/*) - Accessible, unstyled component primitives

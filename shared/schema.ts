@@ -6,7 +6,6 @@ import { z } from "zod";
 // Enums
 export const speciesEnum = pgEnum("species", ["Dog", "Cat", "Bird", "Reptile", "Rodent", "Horse", "Other"]);
 export const sexEnum = pgEnum("sex", ["Male", "Female", "Unknown"]);
-export const recordTypeEnum = pgEnum("record_type", ["Consultation", "Vaccination", "Surgery", "Checkup", "Emergency", "LabTest", "Other"]);
 
 // Owners table
 export const owners = pgTable("owners", {
@@ -26,39 +25,6 @@ export const owners = pgTable("owners", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-// Clinics table
-export const clinics = pgTable("clinics", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  name: text("name").notNull(),
-  country: text("country").notNull().default("UA"),
-  addressLine1: text("address_line1").notNull(),
-  addressLine2: text("address_line2"),
-  city: text("city").notNull(),
-  postalCode: text("postal_code").notNull(),
-  phone: text("phone"),
-  email: text("email"),
-  website: text("website"),
-  timezone: text("timezone").notNull().default("Europe/Kiev"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Vets table
-export const vets = pgTable("vets", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
-  licenseNumber: text("license_number").notNull(),
-  specialization: text("specialization"),
-  email: text("email").notNull().unique(),
-  password: text("password").notNull(),
-  phone: text("phone"),
-  country: text("country").notNull().default("UA"),
-  clinicId: uuid("clinic_id").notNull().references(() => clinics.id),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
 // Animals table
 export const animals = pgTable("animals", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -66,16 +32,29 @@ export const animals = pgTable("animals", {
   species: speciesEnum("species").notNull(),
   breed: text("breed").notNull(),
   sex: sexEnum("sex").notNull(),
-  dateOfBirth: date("date_of_birth").notNull(),
+  dateOfBirth: date("date_of_birth"),
   microchipId: text("microchip_id"),
   passportNumber: text("passport_number"),
   color: text("color"),
   weightKg: real("weight_kg"),
   imageUrl: text("image_url"),
   ownerId: uuid("owner_id").notNull().references(() => owners.id),
-  clinicId: uuid("clinic_id").references(() => clinics.id),
+  vectorStoreId: text("vector_store_id"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Lab Tests table (group of health metrics from one analysis)
+export const labTests = pgTable("lab_tests", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  animalId: uuid("animal_id").notNull().references(() => animals.id, { onDelete: "cascade" }),
+  testDate: date("test_date").notNull(),
+  clinicName: text("clinic_name"),
+  testType: text("test_type"), // Free text field to allow custom test types
+  notes: text("notes"),
+  vectorStoreFileId: text("vector_store_file_id"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
 });
 
 // Files table
@@ -88,51 +67,11 @@ export const files = pgTable("files", {
   uploadedAt: timestamp("uploaded_at").defaultNow(),
 });
 
-// Veterinary Records table
-export const veterinaryRecords = pgTable("veterinary_records", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  animalId: uuid("animal_id").notNull().references(() => animals.id),
-  vetId: uuid("vet_id").references(() => vets.id),
-  clinicId: uuid("clinic_id").references(() => clinics.id),
-  clinicName: text("clinic_name"),
-  visitDate: date("visit_date").notNull(),
-  type: recordTypeEnum("type").notNull(),
-  diagnosis: text("diagnosis"),
-  symptoms: text("symptoms"),
-  treatment: text("treatment"),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
-});
-
-// Record Attachments join table
-export const recordAttachments = pgTable("record_attachments", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  recordId: uuid("record_id").notNull().references(() => veterinaryRecords.id),
-  fileId: uuid("file_id").notNull().references(() => files.id),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
-// Vaccinations table
-export const vaccinations = pgTable("vaccinations", {
-  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  animalId: uuid("animal_id").notNull().references(() => animals.id),
-  vaccineName: text("vaccine_name").notNull(),
-  manufacturer: text("manufacturer"),
-  batchNumber: text("batch_number"),
-  dateAdministered: date("date_administered").notNull(),
-  nextDueDate: date("next_due_date"),
-  vetId: uuid("vet_id").references(() => vets.id),
-  clinicId: uuid("clinic_id").references(() => clinics.id),
-  clinicName: text("clinic_name"),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").defaultNow(),
-});
-
 // Health Metrics table (for weight, blood tests, etc.)
 export const healthMetrics = pgTable("health_metrics", {
   id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
-  animalId: uuid("animal_id").notNull().references(() => animals.id),
+  animalId: uuid("animal_id").notNull().references(() => animals.id, { onDelete: "cascade" }),
+  labTestId: uuid("lab_test_id").references(() => labTests.id, { onDelete: "cascade" }),
   metricName: text("metric_name").notNull(),
   value: real("value").notNull(),
   unit: text("unit").notNull(),
@@ -140,6 +79,16 @@ export const healthMetrics = pgTable("health_metrics", {
   referenceMax: real("reference_max"),
   recordDate: date("record_date").notNull(),
   notes: text("notes"),
+  vectorStoreFileId: text("vector_store_file_id"), // For standalone metrics (without labTestId)
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Chat Messages table (for AI assistant conversation history)
+export const chatMessages = pgTable("chat_messages", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  animalId: uuid("animal_id").notNull().references(() => animals.id, { onDelete: "cascade" }),
+  role: text("role").notNull(), // 'user' | 'assistant'
+  content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -159,24 +108,6 @@ export const insertOwnerSchema = createInsertSchema(owners, {
   updatedAt: true,
 });
 
-export const insertVetSchema = createInsertSchema(vets, {
-  email: z.string().email(),
-  password: z.string().min(6),
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  licenseNumber: z.string().min(1),
-}).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertClinicSchema = createInsertSchema(clinics).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
 export const insertAnimalSchema = createInsertSchema(animals, {
   name: z.string().min(1),
   breed: z.string().min(1),
@@ -185,19 +116,6 @@ export const insertAnimalSchema = createInsertSchema(animals, {
   id: true,
   createdAt: true,
   updatedAt: true,
-});
-
-export const insertVeterinaryRecordSchema = createInsertSchema(veterinaryRecords).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
-
-export const insertVaccinationSchema = createInsertSchema(vaccinations, {
-  vaccineName: z.string().min(1),
-}).omit({
-  id: true,
-  createdAt: true,
 });
 
 export const insertHealthMetricSchema = createInsertSchema(healthMetrics, {
@@ -209,52 +127,56 @@ export const insertHealthMetricSchema = createInsertSchema(healthMetrics, {
   createdAt: true,
 });
 
+export const insertChatMessageSchema = createInsertSchema(chatMessages, {
+  animalId: z.string().uuid(),
+  role: z.enum(["user", "assistant"]),
+  content: z.string().min(1),
+}).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertLabTestSchema = createInsertSchema(labTests, {
+  animalId: z.string().uuid(),
+  testDate: z.string().min(1),
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 export const insertFileSchema = createInsertSchema(files).omit({
   id: true,
   uploadedAt: true,
 });
 
-export const insertRecordAttachmentSchema = createInsertSchema(recordAttachments).omit({
-  id: true,
-  createdAt: true,
-});
-
-// Login schemas
+// Login schema (only for owners now)
 export const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
-  userType: z.enum(["owner", "vet"]),
+  userType: z.literal("owner"),
 });
 
 // Types
 export type InsertOwner = z.infer<typeof insertOwnerSchema>;
 export type Owner = typeof owners.$inferSelect;
 
-export type InsertVet = z.infer<typeof insertVetSchema>;
-export type Vet = typeof vets.$inferSelect;
-
-export type InsertClinic = z.infer<typeof insertClinicSchema>;
-export type Clinic = typeof clinics.$inferSelect;
-
 export type InsertAnimal = z.infer<typeof insertAnimalSchema>;
 export type Animal = typeof animals.$inferSelect;
 
-export type InsertVeterinaryRecord = z.infer<typeof insertVeterinaryRecordSchema>;
-export type VeterinaryRecord = typeof veterinaryRecords.$inferSelect;
-
-export type InsertVaccination = z.infer<typeof insertVaccinationSchema>;
-export type Vaccination = typeof vaccinations.$inferSelect;
+export type InsertLabTest = z.infer<typeof insertLabTestSchema>;
+export type LabTest = typeof labTests.$inferSelect;
 
 export type InsertHealthMetric = z.infer<typeof insertHealthMetricSchema>;
 export type HealthMetric = typeof healthMetrics.$inferSelect;
 
+export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+export type ChatMessage = typeof chatMessages.$inferSelect;
+
 export type InsertFile = z.infer<typeof insertFileSchema>;
 export type File = typeof files.$inferSelect;
 
-export type InsertRecordAttachment = z.infer<typeof insertRecordAttachmentSchema>;
-export type RecordAttachment = typeof recordAttachments.$inferSelect;
-
 export type LoginCredentials = z.infer<typeof loginSchema>;
 
-// User type for session (union of Owner and Vet)
-export type User = (Owner | Vet) & { userType: "owner" | "vet" };
+// User type for session (owners only)
+export type User = Owner & { userType: "owner" };
