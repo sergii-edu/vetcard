@@ -1,12 +1,12 @@
 import {
   Home,
   Heart,
-  FileText,
-  Syringe,
   Activity,
+  FileText,
   ScanLine,
   Settings,
   Plus,
+  Bot,
 } from "lucide-react";
 import {
   Sidebar,
@@ -34,19 +34,19 @@ const menuItems = [
     icon: Heart,
   },
   {
-    title: "Записи",
-    url: "/records",
+    title: "Лабораторні аналізи",
+    url: "/lab-tests",
     icon: FileText,
-  },
-  {
-    title: "Вакцинації",
-    url: "/vaccinations",
-    icon: Syringe,
   },
   {
     title: "Метрики здоров'я",
     url: "/health-metrics",
     icon: Activity,
+  },
+  {
+    title: "AI Асистент",
+    url: "/ai-chat",
+    icon: Bot,
   },
   {
     title: "OCR Сканування",

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Heart, Calendar, AlertTriangle, Activity, Plus } from "lucide-react";
+import { Heart, AlertTriangle, Bot, Plus } from "lucide-react";
 import { StatCard } from "@/components/StatCard";
 import { PetCard } from "@/components/PetCard";
 import { Button } from "@/components/ui/button";
@@ -53,17 +53,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <StatCard
           title="Всього тварин"
           value={animals.length}
           icon={Heart}
-        />
-        <StatCard
-          title="Вакцинації"
-          value={0}
-          icon={Calendar}
-          description="Наступні 30 днів"
         />
         <StatCard
           title="Активні алерти"
@@ -71,9 +65,10 @@ export default function Dashboard() {
           icon={AlertTriangle}
         />
         <StatCard
-          title="Візити цього місяця"
-          value={0}
-          icon={Activity}
+          title="AI Асистент"
+          value="Активний"
+          icon={Bot}
+          description="RAG-система готова"
         />
       </div>
 
@@ -96,10 +91,13 @@ export default function Dashboard() {
                 name={animal.name}
                 species={animal.species}
                 breed={animal.breed}
-                age={`${new Date().getFullYear() - new Date(animal.dateOfBirth).getFullYear()} років`}
+                age={animal.dateOfBirth 
+                  ? `${new Date().getFullYear() - new Date(animal.dateOfBirth).getFullYear()} років`
+                  : "Немає даних"
+                }
                 weight={animal.weightKg || 0}
                 lastCheckup="Немає даних"
-                onClick={() => setLocation(`/records?animal=${animal.id}`)}
+                onClick={() => setLocation(`/pets/${animal.id}`)}
               />
             ))}
           </div>

@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { 
   ArrowLeft, 
@@ -12,13 +11,11 @@ import {
   Heart, 
   IdCard, 
   Palette,
-  FileText,
   Activity,
-  Syringe,
   PawPrint
 } from "lucide-react";
 import { useEffect } from "react";
-import type { Animal, VeterinaryRecord, Vaccination, HealthMetric } from "@shared/schema";
+import type { Animal, HealthMetric } from "@shared/schema";
 
 function calculateAge(dateOfBirth: string): string {
   const today = new Date();
@@ -48,16 +45,6 @@ export default function PetDetail() {
 
   const { data: animal, isLoading: animalLoading } = useQuery<Animal>({
     queryKey: ["/api/animals", id],
-    enabled: !!id,
-  });
-
-  const { data: records = [] } = useQuery<VeterinaryRecord[]>({
-    queryKey: ["/api/veterinary-records/animal", id],
-    enabled: !!id,
-  });
-
-  const { data: vaccinations = [] } = useQuery<Vaccination[]>({
-    queryKey: ["/api/vaccinations/animal", id],
     enabled: !!id,
   });
 
@@ -184,37 +171,13 @@ export default function PetDetail() {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/records")}>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-2xl font-bold" data-testid="count-records">{records.length}</p>
-                    <p className="text-sm text-muted-foreground">Записів</p>
-                  </div>
-                  <FileText className="h-8 w-8 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/vaccinations")}>
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-2xl font-bold" data-testid="count-vaccinations">{vaccinations.length}</p>
-                    <p className="text-sm text-muted-foreground">Вакцинацій</p>
-                  </div>
-                  <Syringe className="h-8 w-8 text-muted-foreground" />
-                </div>
-              </CardContent>
-            </Card>
-
+          <div className="grid grid-cols-1 gap-4">
             <Card className="hover-elevate cursor-pointer" onClick={() => setLocation("/health-metrics")}>
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-2xl font-bold" data-testid="count-metrics">{metrics.length}</p>
-                    <p className="text-sm text-muted-foreground">Метрик</p>
+                    <p className="text-sm text-muted-foreground">Метрик здоров'я</p>
                   </div>
                   <Activity className="h-8 w-8 text-muted-foreground" />
                 </div>
@@ -222,77 +185,45 @@ export default function PetDetail() {
             </Card>
           </div>
 
-          {records.length > 0 && (
+          {metrics.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    <FileText className="h-5 w-5" />
-                    Останні записи
+                    <Activity className="h-5 w-5" />
+                    Останні метрики
                   </span>
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={() => setLocation("/records")}
-                    data-testid="button-view-all-records"
+                    onClick={() => setLocation("/health-metrics")}
+                    data-testid="button-view-all-metrics"
                   >
-                    Всі записи
+                    Всі метрики
                   </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {records.slice(0, 3).map((record) => (
-                    <div key={record.id} className="flex items-center justify-between p-3 rounded-lg border">
-                      <div className="flex-1">
-                        <p className="font-medium">{record.type}</p>
-                        <p className="text-sm text-muted-foreground">{record.visitDate}</p>
+                  {metrics
+                    .sort((a, b) => new Date(b.recordDate).getTime() - new Date(a.recordDate).getTime())
+                    .slice(0, 5)
+                    .map((metric) => (
+                      <div key={metric.id} className="flex items-center justify-between p-3 rounded-lg border">
+                        <div className="flex-1">
+                          <p className="font-medium">{metric.metricName}</p>
+                          <p className="text-sm text-muted-foreground">{metric.recordDate}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">{metric.value} {metric.unit}</p>
+                          {metric.referenceMin && metric.referenceMax && (
+                            <p className="text-xs text-muted-foreground">
+                              Норма: {metric.referenceMin}-{metric.referenceMax}
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      {record.diagnosis && (
-                        <Badge variant="outline">{record.diagnosis}</Badge>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {vaccinations.length > 0 && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center gap-2">
-                    <Syringe className="h-5 w-5" />
-                    Останні вакцинації
-                  </span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setLocation("/vaccinations")}
-                    data-testid="button-view-all-vaccinations"
-                  >
-                    Всі вакцинації
-                  </Button>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {vaccinations.slice(0, 3).map((vac) => (
-                    <div key={vac.id} className="flex items-center justify-between p-3 rounded-lg border">
-                      <div className="flex-1">
-                        <p className="font-medium">{vac.vaccineName}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {vac.dateAdministered}
-                        </p>
-                      </div>
-                      {vac.nextDueDate && (
-                        <Badge variant="outline" className="text-xs">
-                          Наступна: {vac.nextDueDate}
-                        </Badge>
-                      )}
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </CardContent>
             </Card>

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,9 +12,16 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
+
+  useEffect(() => {
+    if (user) {
+      setLocation("/dashboard");
+    }
+  }, [user, setLocation]);
 
   // Login form state
   const [loginEmail, setLoginEmail] = useState("");
@@ -43,6 +51,7 @@ export default function Login() {
         title: "Успішний вхід",
         description: `Вітаємо, ${data.firstName}!`,
       });
+      setLocation("/dashboard");
     },
     onError: (error: any) => {
       toast({
@@ -65,6 +74,7 @@ export default function Login() {
         title: "Реєстрація успішна",
         description: `Вітаємо, ${data.firstName}!`,
       });
+      setLocation("/dashboard");
     },
     onError: (error: any) => {
       toast({

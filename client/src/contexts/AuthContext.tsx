@@ -36,7 +36,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (userData: User) => {
     setUser(userData);
     localStorage.setItem("vetAppUser", JSON.stringify(userData));
-    setLocation("/dashboard");
   };
 
   const logout = () => {

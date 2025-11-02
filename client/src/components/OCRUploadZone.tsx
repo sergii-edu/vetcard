@@ -61,7 +61,7 @@ export function OCRUploadZone({ onFileSelect, isProcessing = false }: OCRUploadZ
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground mb-4">
               <Image className="h-4 w-4" />
-              <span>JPG, PNG, WebP</span>
+              <span>JPG, PNG, WebP, PDF</span>
             </div>
             <label htmlFor="file-upload">
               <Button asChild data-testid="button-upload-file">
@@ -74,7 +74,7 @@ export function OCRUploadZone({ onFileSelect, isProcessing = false }: OCRUploadZ
                 id="file-upload"
                 type="file"
                 className="hidden"
-                accept=".jpg,.jpeg,.png,.webp"
+                accept=".jpg,.jpeg,.png,.webp,.pdf"
                 onChange={handleFileInput}
               />
             </label>

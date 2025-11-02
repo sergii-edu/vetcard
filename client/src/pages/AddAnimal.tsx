@@ -45,14 +45,13 @@ export default function AddAnimal() {
       name: "",
       species: "Dog",
       breed: "",
-      dateOfBirth: "",
+      dateOfBirth: undefined,
       sex: "Male",
       color: undefined,
       weightKg: undefined,
       microchipId: undefined,
       passportNumber: undefined,
       imageUrl: undefined,
-      clinicId: undefined,
     },
   });
 
@@ -79,7 +78,13 @@ export default function AddAnimal() {
   });
 
   const onSubmit = (data: InsertAnimal) => {
-    mutation.mutate({ ...data, ownerId: user?.id || "" });
+    // Convert empty strings to undefined for optional fields
+    const cleanData = {
+      ...data,
+      ownerId: user?.id || "",
+      dateOfBirth: data.dateOfBirth || undefined,
+    };
+    mutation.mutate(cleanData);
   };
 
   if (!user) {
